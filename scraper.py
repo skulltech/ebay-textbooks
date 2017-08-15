@@ -27,16 +27,28 @@ def getProducts(keywords, page, n=0, filter={}):
         x = []
     return x
 
-def getISBN(ref):
-    ref = str(ref)
-    x = requests.get("http://svcs.ebay.com/services/marketplacecatalog/ProductService/v1?OPERATION-NAME=getProductDetails&RESPONSE-DATA-FORMAT=JSON&SECURITY-APPNAME="+ID_APP+"&SERVICE-VERSION=1.3.0&productDetailsRequest.productIdentifier.ePID="+ref+"&productDetailsRequest.datasetPropertyName=ISBN")
-    return eval(x.content.decode("utf-8"))["getProductDetailsResponse"][0]["product"][0]["productDetails"][0]["value"][0]["text"][0]["value"][0]
-    
-    
+def getISBN(ePID):
+
+    payload = {
+        'OPERATION-NAME': 'getProductDetails',
+        'RESPONSE-DATA-FORMAT': 'JSON',
+        'SECURITY-APPNAME': ID_APP,
+        'SERVICE-VERSION': '1.3.0',
+        'productDetailsRequest.productIdentifier.ePID': ePID,
+        'productDetailsRequest.datasetPropertyName': 'ISBN'
+    }
+
+    response = requests.get("http://svcs.ebay.com/services/marketplacecatalog/ProductService/v1", params=payload)
+    isbn = response.json()["getProductDetailsResponse"][0]["product"][0]["productDetails"][0]["value"][0]["text"][0]["value"][0]    
+
+    return isbn
+
+
 def getDesc(itemID):
     itemID = str(itemID)
     response = shopping_api.execute("GetSingleItem", {"ItemID":itemID,"IncludeSelector":"TextDescription"})
     return response.dict()["Item"]["Description"]
+    
 n = int(input("n: "))
 k = input("keywords: ")
 
