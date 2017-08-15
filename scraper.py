@@ -1,19 +1,21 @@
-from ebaysdk.finding import Connection as finding
-from ebaysdk.shopping import Connection as shopping
+from ebaysdk.finding import Connection as Finding
+from ebaysdk.shopping import Connection as Shopping
+from ebaysdk.exception import ConnectionError
+
 import requests
 import csv
 import math
 
 ID_APP = 'BarSowka-book-PRD-98dfd86bc-88e04dff'
 
-finding_api = finding(appid=ID_APP, config_file=None)
-shopping_api = shopping(appid=ID_APP, config_file=None)
+finding_api = Finding(appid=ID_APP, config_file=None)
+shopping_api = Shopping(appid=ID_APP, config_file=None)
 
 conditions = {"brand new": "1000","like new": "2750","very good":"4000","good":"5000","acceptable":"6000"}
 
-def getProducts(keywords, page, n=0,filtr={}):
-    entriesPerPage = 100 if n>99 else n
-    keywords=str(keywords)
+def getProducts(keywords, page, n=0, filter={}):
+    entriesPerPage = 100 if n>100 else n
+    keywords = keywords
     filtr["keywords"]=keywords
     filtr["paginationInput"]={"entriesPerPage": str(entriesPerPage), "pageNumber": str(page)}
     filtr["sortOrder"]="StartTimeNewest"
@@ -29,8 +31,8 @@ def getISBN(ref):
     ref = str(ref)
     x = requests.get("http://svcs.ebay.com/services/marketplacecatalog/ProductService/v1?OPERATION-NAME=getProductDetails&RESPONSE-DATA-FORMAT=JSON&SECURITY-APPNAME="+ID_APP+"&SERVICE-VERSION=1.3.0&productDetailsRequest.productIdentifier.ePID="+ref+"&productDetailsRequest.datasetPropertyName=ISBN")
     return eval(x.content.decode("utf-8"))["getProductDetailsResponse"][0]["product"][0]["productDetails"][0]["value"][0]["text"][0]["value"][0]
-    #the line above this comment is absolutely disgusting but it had to be done
-    #converts bytes to string to dict, wanted to avoid using json library
+    
+    
 def getDesc(itemID):
     itemID = str(itemID)
     response = shopping_api.execute("GetSingleItem", {"ItemID":itemID,"IncludeSelector":"TextDescription"})
