@@ -11,21 +11,43 @@ ID_APP = 'BarSowka-book-PRD-98dfd86bc-88e04dff'
 finding_api = Finding(appid=ID_APP, config_file=None)
 shopping_api = Shopping(appid=ID_APP, config_file=None)
 
-conditions = {"brand new": "1000","like new": "2750","very good":"4000","good":"5000","acceptable":"6000"}
+conditionsDict = {
+    'Brand new': 1000,
+    'Like new': 3000, 
+    'Very Good': 4000, 
+    'Good': 5000, 
+    'Acceptable': 6000, 
+}
 
-def getProducts(keywords, page, n=0, filter={}):
-    entriesPerPage = 100 if n>100 else n
-    keywords = keywords
-    filtr["keywords"]=keywords
-    filtr["paginationInput"]={"entriesPerPage": str(entriesPerPage), "pageNumber": str(page)}
-    filtr["sortOrder"]="StartTimeNewest"
-    #filtr["paginationOutput"]={"totalPages":pages,"totalEntries":str(n),"pageNumber": str(page),"entriesPerPage":"100"}
-    response = finding_api.execute('findItemsByKeywords', filtr)
+listingTypes = ['Auction', 'AuctionWithBIN', 'Classified', 'FixedPrice', 'StoreInventory', 'All']
+sortOrders = ['BestMatch', 'BidCountFewest', 'BidCountMost', 'CountryAscending', 'CountryDescending', 'CurrentPriceHighest', 'DistanceNearest', 'EndTimeSoonest', 'PricePlusShippingHighest', 'PricePlusShippingLowest', 'StartTimeNewest', 'WatchCountDecreaseSort']
+conditionsList = ['Brand new', 'Like new', 'Very Good', 'Good', 'Acceptable']
+
+def getProducts(keywords, page=1, entriesPerPage=100, sortOrder='BestMatch', condition='Brand new', listingType='All', options={}, freeShippingOnly=False, categoryID=None):
+    
+
+    options['keywords'] = keywords
+    options['paginationInput'] = {'entriesPerPage': entriesPerPage, 'pageNumber': page}
+    options['sortOrder'] = sortOrder
+    
+    options['itemFilter'] = {
+        'MinPrice': '', 
+        'MaxPrice': '', 
+        'Condition': conditionsDict[condition], 
+        'ListingType':listingType, 
+        'FreeShippingOnly': freeShippingOnly,
+        'HideDuplicateItems': True,
+        'categoryId': categoryID
+    }
+
+    response = finding_api.execute('findItemsAdvanced', options)
+    
     try:
         x = response.dict()["searchResult"]["item"]
     except KeyError:
         x = []
-    return x
+    
+    return response.dict()
 
 def getISBN(ePID):
 
@@ -46,9 +68,9 @@ def getISBN(ePID):
 
 def getDesc(itemID):
     itemID = str(itemID)
-    response = shopping_api.execute("GetSingleItem", {"ItemID":itemID,"IncludeSelector":"TextDescription"})
+    response = shopping_api.execute("GetSingleItem", {"ItemID":itemID, "IncludeSelector":"TextDescription"})
     return response.dict()["Item"]["Description"]
-    
+
 n = int(input("n: "))
 k = input("keywords: ")
 
