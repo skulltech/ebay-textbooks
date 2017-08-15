@@ -71,38 +71,43 @@ def getDesc(itemID):
     response = shopping_api.execute("GetSingleItem", {"ItemID":itemID, "IncludeSelector":"TextDescription"})
     return response.dict()["Item"]["Description"]
 
-n = int(input("n: "))
-k = input("keywords: ")
+def main():
+    n = int(input("n: "))
+    k = input("keywords: ")
 
-f={"itemFilter":[
-#{"name":"Condition", "value":conditions["brand new"]},
-#{"name":"MaxPrice", "value":"10.00", "paramName":"Currency","paramValue":"USD"},
-#{"name":"MinPrice", "value":"5.00", "paramName":"Currency","paramValue":"USD"},
-#{"name":"ListingType", "value":"FixedPrice"}
-]}
-t = [] #getProducts(k,n,f)
-for page in range(int(input("start page: ")),math.ceil(n/100)+1):
-    print(page)
-    temp = getProducts(k,page,n,f)
-    t = t+ temp
-print(len(t))
+    f={"itemFilter":[
+    #{"name":"Condition", "value":conditions["brand new"]},
+    #{"name":"MaxPrice", "value":"10.00", "paramName":"Currency","paramValue":"USD"},
+    #{"name":"MinPrice", "value":"5.00", "paramName":"Currency","paramValue":"USD"},
+    #{"name":"ListingType", "value":"FixedPrice"}
+    ]}
+    t = [] #getProducts(k,n,f)
+    for page in range(int(input("start page: ")),math.ceil(n/100)+1):
+        print(page)
+        temp = getProducts(k,page,n,f)
+        t = t+ temp
+    print(len(t))
 
-t2 = []
-for x in t:
-    try:
-        if x["productId"]["_type"] == "ReferenceID":
-            #print("refID found !!!!")
-            ref = x["productId"]["value"]
-            isbn = getISBN(ref)
-            link = "http://www.ebay.com/itm/"+x["itemId"]
-            price = x["sellingStatus"]["convertedCurrentPrice"]["value"]
-            #desc = getDesc(x["itemId"]) or ""
-            t2.append({"ISBN": isbn, "link": link, "price": price})#, "description": desc})
-    except KeyError:
-        pass
+    t2 = []
+    for x in t:
+        try:
+            if x["productId"]["_type"] == "ReferenceID":
+                #print("refID found !!!!")
+                ref = x["productId"]["value"]
+                isbn = getISBN(ref)
+                link = "http://www.ebay.com/itm/"+x["itemId"]
+                price = x["sellingStatus"]["convertedCurrentPrice"]["value"]
+                #desc = getDesc(x["itemId"]) or ""
+                t2.append({"ISBN": isbn, "link": link, "price": price})#, "description": desc})
+        except KeyError:
+            pass
 
-with open(str(input("filename: "))+".csv", "w",encoding="utf-8") as f:
-    w = csv.DictWriter(f, t2[0].keys())
-    w.writeheader()
-    w.writerows(t2)
-f.close()
+    with open(str(input("filename: "))+".csv", "w",encoding="utf-8") as f:
+        w = csv.DictWriter(f, t2[0].keys())
+        w.writeheader()
+        w.writerows(t2)
+    f.close()
+
+if __name__=='__main__':
+    main()
+    
