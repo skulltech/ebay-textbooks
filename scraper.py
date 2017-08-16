@@ -5,6 +5,7 @@ from ebaysdk.exception import ConnectionError
 import requests
 import csv
 import math
+import sys
 
 ID_APP = 'BarSowka-book-PRD-98dfd86bc-88e04dff'
 
@@ -23,31 +24,42 @@ listingTypes = ['Auction', 'AuctionWithBIN', 'Classified', 'FixedPrice', 'StoreI
 sortOrders = ['BestMatch', 'BidCountFewest', 'BidCountMost', 'CountryAscending', 'CountryDescending', 'CurrentPriceHighest', 'DistanceNearest', 'EndTimeSoonest', 'PricePlusShippingHighest', 'PricePlusShippingLowest', 'StartTimeNewest', 'WatchCountDecreaseSort']
 conditionsList = ['Brand new', 'Like new', 'Very Good', 'Good', 'Acceptable']
 
+def exitProgram(message):
+    print(message or 'Exiting...')
+    sys.exit()
+
 def getProducts(keywords, page=1, entriesPerPage=100, sortOrder='BestMatch', condition='Brand new', listingType='All', options={}, freeShippingOnly=False, categoryID=None):
-    
+
+    if sortOrder   not in sortOrders:   exitProgram('Invalid sortOrder provided. Exiting...')
+    if condition   not in conditions:   exitProgram('Invalid condition provided. Exiting...')
+    if listingType not in listingTypes: exitProgram('Invalid listingType provided. Exiting...')
 
     options['keywords'] = keywords
     options['paginationInput'] = {'entriesPerPage': entriesPerPage, 'pageNumber': page}
     options['sortOrder'] = sortOrder
     
-    options['itemFilter'] = {
-        'MinPrice': '', 
-        'MaxPrice': '', 
-        'Condition': conditionsDict[condition], 
-        'ListingType':listingType, 
-        'FreeShippingOnly': freeShippingOnly,
-        'HideDuplicateItems': True,
-        'categoryId': categoryID
-    }
+    options['itemFilter'] = [
+        {'name': 'MinPrice', 'value': 0, 'paramName': 'Currency', 'paramValue': 'USD'}, 
+        {'name': 'MaxPrice', 'value': 100, 'paramName': 'Currency', 'paramValue': 'USD'}, 
+        {'name': 'Condition', 'value': conditionsDict[condition]},
+        {'name': 'ListingType', 'value': listingType},
+        {'name': 'FreeShippingOnly', 'value': freeShippingOnly},
+        {'name': 'HideDuplicateItems', 'value': True},
+        {'name': 'categoryId', 'value': categoryID},
+    ]
 
-    response = finding_api.execute('findItemsAdvanced', options)
+    response = finding_api.execute('findItemsAdvanced', options).dict()
+
+    try:             ack = response['ack']
+    except KeyError: exitProgram('Some unexpected error occurred! Check your connection. Exiting...')
+
+    if ack != 'Success': exitProgram('Error returned from the API! Check your inputs. Exiting...')
+
+    try:             result = response.dict()["searchResult"]["item"]
+    except KeyError: exitProgram('No search results found! Exiting...')
     
-    try:
-        x = response.dict()["searchResult"]["item"]
-    except KeyError:
-        x = []
-    
-    return response.dict()
+    return result
+
 
 def getISBN(ePID):
 
@@ -67,9 +79,10 @@ def getISBN(ePID):
 
 
 def getDesc(itemID):
-    itemID = str(itemID)
-    response = shopping_api.execute("GetSingleItem", {"ItemID":itemID, "IncludeSelector":"TextDescription"})
+
+    response = shopping_api.execute("GetSingleItem", {"ItemID": itemID, "IncludeSelector": "TextDescription"})    
     return response.dict()["Item"]["Description"]
+
 
 def main():
     n = int(input("n: "))
