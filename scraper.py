@@ -30,9 +30,9 @@ def exitProgram(message):
 
 def getProducts(keywords, page=1, entriesPerPage=100, sortOrder='BestMatch', condition='Brand new', listingType='All', options={}, freeShippingOnly=False, categoryID=None):
 
-    if sortOrder   not in sortOrders:   exitProgram('Invalid sortOrder provided. Exiting...')
-    if condition   not in conditions:   exitProgram('Invalid condition provided. Exiting...')
-    if listingType not in listingTypes: exitProgram('Invalid listingType provided. Exiting...')
+    if sortOrder   not in sortOrders:       exitProgram('Invalid sortOrder provided. Exiting...')
+    if condition   not in conditionsList:   exitProgram('Invalid condition provided. Exiting...')
+    if listingType not in listingTypes:     exitProgram('Invalid listingType provided. Exiting...')
 
     options['keywords'] = keywords
     options['paginationInput'] = {'entriesPerPage': entriesPerPage, 'pageNumber': page}
@@ -111,7 +111,7 @@ def main():
 
     for page in range(math.ceil(n/100) + 1):
         print('Currently getting page no {}'.format(page))
-        products = products + getProducts(k, page, n, f)
+        products = products + getProducts(keywords, page=page, entriesPerPage=n)
     
     print('Total number of items grabbed: {}'.format(len(products)))
 
