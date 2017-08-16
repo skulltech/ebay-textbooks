@@ -75,7 +75,7 @@ def getISBN(ePID):
     response = requests.get("http://svcs.ebay.com/services/marketplacecatalog/ProductService/v1", params=payload)
     isbn = response.json()["getProductDetailsResponse"][0]["product"][0]["productDetails"][0]["value"][0]["text"][0]["value"][0]    
 
-    return isbn
+    return response.json()
 
 
 def getDesc(itemID):
@@ -84,41 +84,44 @@ def getDesc(itemID):
     return response.dict()["Item"]["Description"]
 
 
-def main():
-    n = int(input("n: "))
-    k = input("keywords: ")
-
-    f={"itemFilter":[
-    #{"name":"Condition", "value":conditions["brand new"]},
-    #{"name":"MaxPrice", "value":"10.00", "paramName":"Currency","paramValue":"USD"},
-    #{"name":"MinPrice", "value":"5.00", "paramName":"Currency","paramValue":"USD"},
-    #{"name":"ListingType", "value":"FixedPrice"}
-    ]}
-    t = [] #getProducts(k,n,f)
-    for page in range(int(input("start page: ")),math.ceil(n/100)+1):
-        print(page)
-        temp = getProducts(k,page,n,f)
-        t = t+ temp
-    print(len(t))
-
-    t2 = []
-    for x in t:
+def filterData(products):
+    filtered = []
+    
+    for x in products:
         try:
-            if x["productId"]["_type"] == "ReferenceID":
-                #print("refID found !!!!")
-                ref = x["productId"]["value"]
+            if x['productId']['_type'] != 'ReferenceID': 
+                print('No refID found for item.')
+            else:
+                ref = x['productId']['value']
                 isbn = getISBN(ref)
-                link = "http://www.ebay.com/itm/"+x["itemId"]
-                price = x["sellingStatus"]["convertedCurrentPrice"]["value"]
-                #desc = getDesc(x["itemId"]) or ""
-                t2.append({"ISBN": isbn, "link": link, "price": price})#, "description": desc})
-        except KeyError:
-            pass
+                link = 'http://www.ebay.com/itm/' + x['itemId']
+                price = x['sellingStatus']['convertedCurrentPrice']['value']
+                desc = getDesc(x['itemId']) or ''
 
-    with open(str(input("filename: "))+".csv", "w",encoding="utf-8") as f:
-        w = csv.DictWriter(f, t2[0].keys())
+                filtered.append({'ISBN': isbn, 'link': link, 'price': price, 'description': desc})
+        except KeyError:
+            print('Some data missing for item.')
+
+def main():
+
+    n = int(input('Number of entries: '))
+    keywords = input('Keywords: ')
+    filename = input('Enter to filename of the output CSV file: ')
+    products = []
+
+    for page in range(math.ceil(n/100) + 1):
+        print('Currently getting page no {}'.format(page))
+        products = products + getProducts(k, page, n, f)
+    
+    print('Total number of items grabbed: {}'.format(len(products)))
+
+    filteredProducts = filterData(products)
+
+    with open(filename + '.csv', 'w', encoding='utf-8') as f:
+        w = csv.DictWriter(f, filteredProducts[0].keys())
         w.writeheader()
-        w.writerows(t2)
+        w.writerows(filteredProducts)
+    
     f.close()
 
 if __name__=='__main__':
