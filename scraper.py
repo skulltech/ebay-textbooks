@@ -1,5 +1,6 @@
 from ebaysdk.finding import Connection as Finding
 from ebaysdk.shopping import Connection as Shopping
+from ebaysdk.trading import Connection as Trading
 from ebaysdk.exception import ConnectionError
 
 import requests
@@ -11,6 +12,7 @@ ID_APP = 'BarSowka-book-PRD-98dfd86bc-88e04dff'
 
 finding_api = Finding(appid=ID_APP, config_file=None)
 shopping_api = Shopping(appid=ID_APP, config_file=None)
+trading_api = Trading(appid=ID_APP, config_file=None)
 
 conditionsDict = {
     'Brand new': 1000,
@@ -28,7 +30,7 @@ def exitProgram(message):
     print(message or 'Exiting...')
     sys.exit()
 
-def getProducts(keywords, page=1, entriesPerPage=100, sortOrder='BestMatch', condition='Brand new', listingType='All', options={}, freeShippingOnly=False, categoryID=None):
+def getProducts(keywords, page=1, entriesPerPage=100, sortOrder='BestMatch', condition='Brand new', listingType='All', options={}, freeShippingOnly=False, categoryID=267):
 
     if sortOrder   not in sortOrders:       exitProgram('Invalid sortOrder provided. Exiting...')
     if condition   not in conditionsList:   exitProgram('Invalid condition provided. Exiting...')
@@ -55,7 +57,7 @@ def getProducts(keywords, page=1, entriesPerPage=100, sortOrder='BestMatch', con
 
     if ack != 'Success': exitProgram('Error returned from the API! Check your inputs. Exiting...')
 
-    try:             result = response.dict()["searchResult"]["item"]
+    try:             result = response['searchResult']['item']
     except KeyError: exitProgram('No search results found! Exiting...')
     
     return result
@@ -73,34 +75,55 @@ def getISBN(ePID):
     }
 
     response = requests.get("http://svcs.ebay.com/services/marketplacecatalog/ProductService/v1", params=payload)
-    isbn = response.json()["getProductDetailsResponse"][0]["product"][0]["productDetails"][0]["value"][0]["text"][0]["value"][0]    
+    
+    try:
+        isbn = response.json()["getProductDetailsResponse"][0]["product"][0]["productDetails"][0]["value"][0]["text"][0]["value"][0]
+    except KeyError:
+        isbn = 'Not Available'    
 
-    return response.json()
+    return isbn
 
 
 def getDesc(itemID):
 
     response = shopping_api.execute("GetSingleItem", {"ItemID": itemID, "IncludeSelector": "TextDescription"})    
-    return response.dict()["Item"]["Description"]
+    try:
+        desc = response.dict()["Item"]["Description"]
+    except KeyError:
+        desc = 'Not Available'
+
+    return desc
 
 
 def filterData(products):
     filtered = []
+
+    withoutProductID = 0
+    withoutISBN = 0
+    withoutDesc = 0
     
     for x in products:
         try:
-            if x['productId']['_type'] != 'ReferenceID': 
-                print('No refID found for item.')
-            else:
-                ref = x['productId']['value']
-                isbn = getISBN(ref)
-                link = 'http://www.ebay.com/itm/' + x['itemId']
-                price = x['sellingStatus']['convertedCurrentPrice']['value']
-                desc = getDesc(x['itemId']) or ''
-
-                filtered.append({'ISBN': isbn, 'link': link, 'price': price, 'description': desc})
+            productId = x['productId']
         except KeyError:
-            print('Some data missing for item.')
+            withoutProductID = withoutProductID + 1
+        else:
+            ref = productId['value']
+            isbn = getISBN(ref)
+            link = 'http://www.ebay.com/itm/' + x['itemId']
+            price = x['sellingStatus']['convertedCurrentPrice']['value']
+            desc = getDesc(x['itemId'])
+
+            if isbn == 'Not Available':  withoutISBN = withoutISBN + 1
+            if desc == 'Not Available':  withoutDesc = withoutDesc + 1
+
+            filtered.append({'ISBN': isbn, 'link': link, 'price': price, 'description': desc})
+
+    print('Products without ProductID   : {}'.format(withoutProductID))
+    print('Products without ISBN        : {}'.format(withoutISBN))
+    print('Products without Description : {}'.format(withoutDesc))
+
+    return filtered
 
 def main():
 
@@ -109,7 +132,7 @@ def main():
     filename = input('Enter to filename of the output CSV file: ')
     products = []
 
-    for page in range(math.ceil(n/100) + 1):
+    for page in range(1, math.ceil(n/100) + 1):
         print('Currently getting page no {}'.format(page))
         products = products + getProducts(keywords, page=page, entriesPerPage=n)
     
@@ -117,7 +140,7 @@ def main():
 
     filteredProducts = filterData(products)
 
-    with open(filename + '.csv', 'w', encoding='utf-8') as f:
+    with open(filename + '.csv', 'w', encoding='utf-8', newline='') as f:
         w = csv.DictWriter(f, filteredProducts[0].keys())
         w.writeheader()
         w.writerows(filteredProducts)
