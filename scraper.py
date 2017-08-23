@@ -83,6 +83,16 @@ def getISBN(ePID):
 
     return isbn
 
+def getPublicationYear(isbn):
+
+    response = requests.get('https://www.googleapis.com/books/v1/volumes?q=isbn:{}'.format(isbn)).json()
+    try:
+        year = int(response['items'][0]['volumeInfo']['publishedDate'][:4])
+    except KeyError:
+        return 0
+    else:
+        return year
+
 
 def getDesc(itemID):
 
@@ -101,6 +111,7 @@ def filterData(products):
     withoutProductID = 0
     withoutISBN = 0
     withoutDesc = 0
+    oldProducts = 0
     
     for x in products:
         try:
@@ -110,18 +121,29 @@ def filterData(products):
         else:
             ref = productId['value']
             isbn = getISBN(ref)
+            if isbn == 'Not Available':  
+                withoutISBN = withoutISBN + 1
+                continue
+            
             link = 'http://www.ebay.com/itm/' + x['itemId']
             price = x['sellingStatus']['convertedCurrentPrice']['value']
             desc = getDesc(x['itemId'])
 
-            if isbn == 'Not Available':  withoutISBN = withoutISBN + 1
             if desc == 'Not Available':  withoutDesc = withoutDesc + 1
 
-            filtered.append({'ISBN': isbn, 'link': link, 'price': price, 'description': desc})
+            publicationyear = getPublicationYear(isbn)
+            if publicationyear < 2011:
+                oldProducts = oldProducts + 1
+                continue
+
+
+            filtered.append({'ISBN': isbn, 'link': link, 'price': price, 'description': desc, 'publicationyear': publicationyear})
 
     print('Products without ProductID   : {}'.format(withoutProductID))
     print('Products without ISBN        : {}'.format(withoutISBN))
     print('Products without Description : {}'.format(withoutDesc))
+    print('Products older than 2011     : {}'.format(oldProducts))
+
 
     return filtered
 
