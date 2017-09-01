@@ -125,7 +125,7 @@ def filterData(products):
 
     withoutProductID = 0
     withoutISBN = 0
-    withoutDesc = 0
+    withoutTitle = 0
     oldProducts = 0
     
     restrictedWords = ['international', 'global']
@@ -144,10 +144,10 @@ def filterData(products):
             
             link = 'http://www.ebay.com/itm/' + x['itemId']
             price = x['sellingStatus']['convertedCurrentPrice']['value']
-            desc = getDesc(x['itemId'])
+            title = getTitle(x['itemId'])
 
-            if desc == 'Not Available':  withoutDesc = withoutDesc + 1
-            elif isInternational(desc, restrictedWords):
+            if title == 'Not Available':  withoutTitle = withoutTitle + 1
+            elif isInternational(title, restrictedWords):
                 continue
 
             publicationyear = getPublicationYear(isbn)
@@ -156,11 +156,11 @@ def filterData(products):
                 continue
 
 
-            filtered.append({'ISBN': isbn, 'link': link, 'price': price, 'description': desc, 'publicationyear': publicationyear})
+            filtered.append({'ISBN': isbn, 'link': link, 'price': price, 'title': title, 'publicationyear': publicationyear})
 
     print('Products without ProductID   : {}'.format(withoutProductID))
     print('Products without ISBN        : {}'.format(withoutISBN))
-    print('Products without Description : {}'.format(withoutDesc))
+    print('Products without Title       : {}'.format(withoutTitle))
     print('Products older than 2011     : {}'.format(oldProducts))
 
 
