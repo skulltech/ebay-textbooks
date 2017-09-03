@@ -155,14 +155,12 @@ def filterData(products):
                 oldProducts = oldProducts + 1
                 continue
 
-
             filtered.append({'ISBN': isbn, 'link': link, 'price': price, 'title': title, 'publicationyear': publicationyear})
 
     print('Products without ProductID   : {}'.format(withoutProductID))
     print('Products without ISBN        : {}'.format(withoutISBN))
     print('Products without Title       : {}'.format(withoutTitle))
     print('Products older than 2011     : {}'.format(oldProducts))
-
 
     return filtered
 
@@ -181,6 +179,8 @@ def main():
     print('Total number of items grabbed: {}'.format(len(products)))
 
     filteredProducts = filterData(products)
+    filteredProducts = {v['link']:v for v in filteredProducts}.values()
+    filteredProducts = list(filteredProducts)
 
     with open(filename + '.csv', 'w', encoding='utf-8', newline='') as f:
         w = csv.DictWriter(f, filteredProducts[0].keys())
